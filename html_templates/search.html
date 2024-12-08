@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: block;
+            text-align: left;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #6c63ff;
+            outline: none;
+        }
+
+        button[type="submit"], .btn {
+            background-color: #6c63ff;
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button[type="submit"]:hover, .btn:hover {
+            background-color: #5548c8;
+        }
+
+        .link-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .link-item a {
+            font-size: 16px;
+            color: #6c63ff;
+            text-decoration: none;
+        }
+
+        .link-item a:hover {
+            text-decoration: underline;
+        }
+
+        .delete-button {
+            background-color: #ff4d4f;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background-color: #d93636;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .footer a {
+            color: #6c63ff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Submit Your Text</h1>
+
+    <form action="/search" method="POST">
+        <label for="inputField">Enter your input:</label>
+        <input type="text" id="inputField" name="to_find" placeholder="Type something here..." required>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    {{if .Files}}
+    <div class="link-list">
+        <h2>Submitted Entries</h2>
+        {{range .Files}}
+        <div class="link-item">
+            <a href="/view?object_name={{.}}">{{.}}</a>
+            <form action="/delete" method="POST" style="display: inline;">
+                <input type="hidden" name="object_name" value="{{.}}">
+                <button type="submit" class="delete-button">Delete</button>
+            </form>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
+    <div class="footer">
+        Made with ❤️ by <a href="#">Mrbelka12000</a>
+    </div>
+</div>
+
+</body>
+</html>
