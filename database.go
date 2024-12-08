@@ -55,8 +55,13 @@ func (r *repository) Insert(ctx context.Context, content io.Reader, title, objec
 		text = cleanString(text) + title
 
 		_, err = r.db.ExecContext(ctx, `
-	INSERT INTO files (title, text, file_key, search_vector) VALUES ($1, $2, $3, strip(to_tsvector('simple',$4)))
+	INSERT INTO files (
+	title, text, file_key, search_vector) 
+	VALUES ($1, $2, $3, strip(to_tsvector('simple', regexp_replace($4, '[^\u0000-\u007F]+', ' ', 'g')
+
+)))
 `, title, text, objectName, text)
+		fmt.Println(text)
 		if err != nil {
 			return fmt.Errorf("insert: %w", err)
 		}
@@ -135,6 +140,9 @@ func cleanString(input string) string {
 	for _, r := range input {
 		if r == utf8.RuneError {
 			continue // Skip invalid runes
+		}
+		if r < 32 && r != 10 && r != 13 { // Remove control characters except newline and carriage return
+			continue
 		}
 		cleanBuilder.WriteRune(r)
 	}
