@@ -3,8 +3,11 @@ package mini_wiki
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
+	"unicode/utf8"
 
 	_ "github.com/lib/pq"
 )
@@ -34,6 +37,7 @@ func DatabaseConnect(cfg Config) (*sql.DB, error) {
 }
 
 func (r *repository) Insert(ctx context.Context, content io.Reader, title, objectName string) error {
+
 	chank := make([]byte, maxContentSize/2)
 
 	for {
@@ -48,7 +52,8 @@ func (r *repository) Insert(ctx context.Context, content io.Reader, title, objec
 		if text == "" {
 			break
 		}
-		text += title
+		text = cleanString(text) + title
+
 		_, err = r.db.ExecContext(ctx, `
 	INSERT INTO files (title, text, file_key, search_vector) VALUES ($1, $2, $3, strip(to_tsvector('simple',$4)))
 `, title, text, objectName, text)
@@ -100,4 +105,38 @@ func (r *repository) Delete(ctx context.Context, objectName string) error {
 	}
 
 	return nil
+}
+
+func (r *repository) IncrementFileNameVersion(ctx context.Context, objectName string) error {
+	_, err := r.db.ExecContext(ctx, `
+insert into file_names(
+                       file_key, count
+) VALUES (
+          $1, 1
+         ) on conflict(file_key) DO UPDATE set count = file_names.count+1 where file_names.file_key = $1;
+`, objectName)
+	if err != nil {
+		return fmt.Errorf("increment: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) GetFileNamesVersion(ctx context.Context, objectName string) (version int, err error) {
+	err = r.db.QueryRowContext(ctx, `SELECT count from file_names where file_key = $1`, objectName).Scan(&version)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 1, nil
+	}
+	return version, err
+}
+
+func cleanString(input string) string {
+	var cleanBuilder strings.Builder
+	for _, r := range input {
+		if r == utf8.RuneError {
+			continue // Skip invalid runes
+		}
+		cleanBuilder.WriteRune(r)
+	}
+	return cleanBuilder.String()
 }

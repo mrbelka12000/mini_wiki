@@ -53,6 +53,11 @@ func (s *Storage) DownloadFile(ctx context.Context, w http.ResponseWriter, objec
 		return fmt.Errorf("download file: %v", err)
 	}
 
+	s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
+		WithVersions: true,
+		Recursive:    true,
+	})
+
 	objectInfo, err := object.Stat()
 	if err != nil {
 		return fmt.Errorf("get stats: %v", err)

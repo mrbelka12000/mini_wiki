@@ -47,8 +47,12 @@ func initHandlers(s *Service, mux *http.ServeMux) {
 }
 
 func (s *Service) handleTextFile(ctx context.Context, f multipart.File, handler *multipart.FileHeader) error {
+	objectName, err := s.getCurrentVersion(ctx, handler.Filename)
+	if err != nil {
+		return err
+	}
 
-	objectName, err := s.storage.UploadFile(ctx, f, handler.Filename, handler.Header.Get("Content-Type"), handler.Size)
+	objectName, err = s.storage.UploadFile(ctx, f, objectName, handler.Header.Get("Content-Type"), handler.Size)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
@@ -75,7 +79,12 @@ func (s *Service) handleZipFile(ctx context.Context, unzipper *zip.Reader) error
 		var buf bytes.Buffer
 		tee := io.TeeReader(reader, &buf)
 
-		objectName, err := s.storage.UploadFile(ctx, tee, fileName, file.FileHeader.Mode().Type().String(), file.FileInfo().Size())
+		objectName, err := s.getCurrentVersion(ctx, fileName)
+		if err != nil {
+			return err
+		}
+
+		objectName, err = s.storage.UploadFile(ctx, tee, objectName, file.FileHeader.Mode().Type().String(), file.FileInfo().Size())
 		if err != nil {
 			return fmt.Errorf("upload zip file: %w", err)
 		}
@@ -108,4 +117,20 @@ func getFileSize(f io.Seeker) (int64, error) {
 	}
 
 	return fileSize, nil
+}
+
+func (s *Service) getCurrentVersion(ctx context.Context, objectName string) (string, error) {
+	err := s.repo.IncrementFileNameVersion(ctx, objectName)
+	if err != nil {
+		return "", fmt.Errorf("increment version: %w", err)
+	}
+
+	version, err := s.repo.GetFileNamesVersion(ctx, objectName)
+	if err != nil {
+		return "", fmt.Errorf("get file names version: %w", err)
+	}
+
+	objectName = fmt.Sprintf("%d.%s", version, objectName)
+
+	return objectName, nil
 }
