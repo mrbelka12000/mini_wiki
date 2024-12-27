@@ -149,7 +149,7 @@
         {{range .Files}}
         <div class="link-item">
             <strong>{{.Project}}</strong>
-            <a href="/view?object_name={{.}}">{{.Name}}</a>
+            <a href="/view?object_name={{.Name}}">{{.Name}}</a>
             <form action="/delete" method="POST" style="display: inline;">
                 <input type="hidden" name="object_name" value="{{.Name}}">
                 <button type="submit" class="delete-button">Delete</button>
