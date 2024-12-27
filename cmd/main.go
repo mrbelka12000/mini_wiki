@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 func main() {
 
+	fmt.Println("Started  container")
 	cfg, err := miniwiki.GetConfig()
 	if err != nil {
 		panic(err)
@@ -19,6 +21,7 @@ func main() {
 
 	db, err := miniwiki.DatabaseConnect(cfg)
 	if err != nil {
+		fmt.Println(err, "unable to connect to database")
 		log.With("error", err).Error("failed to connect to database")
 		return
 	}
@@ -26,6 +29,7 @@ func main() {
 
 	storage, err := miniwiki.GetStorage(cfg)
 	if err != nil {
+		fmt.Println(err, "unable to connect to storage")
 		log.With("error", err).Error("failed to connect to storage")
 		return
 	}
