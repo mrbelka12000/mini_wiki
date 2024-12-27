@@ -18,6 +18,6 @@ WORKDIR /
 
 COPY --from=buildenv  /app/ /
 
-EXPOSE 8081
+EXPOSE 5056
 
 CMD ["/main"]
