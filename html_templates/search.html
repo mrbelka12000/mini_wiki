@@ -148,7 +148,8 @@
         <h2>Submitted Entries</h2>
         {{range .Files}}
         <div class="link-item">
-            <a href="/view?object_name={{.}}">{{.}}</a>
+            <strong>{{.Project}}</strong>
+            <a href="/view?object_name={{.}}">{{.Name}}</a>
             <form action="/delete" method="POST" style="display: inline;">
                 <input type="hidden" name="object_name" value="{{.}}">
                 <button type="submit" class="delete-button">Delete</button>

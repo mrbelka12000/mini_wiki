@@ -28,7 +28,6 @@ func GetStorage(cfg Config) (*Storage, error) {
 		return nil, fmt.Errorf("create minio client: %v", err)
 	}
 
-	fmt.Println(cfg.MinIOBucket)
 	return &Storage{
 		client: minioClient,
 		bucket: cfg.MinIOBucket,
@@ -52,11 +51,6 @@ func (s *Storage) DownloadFile(ctx context.Context, w http.ResponseWriter, objec
 	if err != nil {
 		return fmt.Errorf("download file: %v", err)
 	}
-
-	s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
-		WithVersions: true,
-		Recursive:    true,
-	})
 
 	objectInfo, err := object.Stat()
 	if err != nil {

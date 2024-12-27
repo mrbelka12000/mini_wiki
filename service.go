@@ -41,6 +41,7 @@ func RunService(db *sql.DB, storage storage, log *slog.Logger, mux *http.ServeMu
 func initHandlers(s *Service, mux *http.ServeMux) {
 	mux.HandleFunc("/", makeIndexHandler())
 	mux.HandleFunc("/upload", makeUploadDataHandler(s))
+	//mux.HandleFunc("/upload_book", nil)
 	mux.HandleFunc("/search", makeSearchDataHandler(s))
 	mux.HandleFunc("/delete", makeDeleteDataHandler(s))
 	mux.HandleFunc("/view", makeViewFileHandler(s))
@@ -57,7 +58,7 @@ func (s *Service) handleTextFile(ctx context.Context, f multipart.File, handler 
 		return fmt.Errorf("upload file: %w", err)
 	}
 
-	err = s.repo.Insert(ctx, f, handler.Filename, objectName)
+	err = s.repo.Insert(ctx, f, handler.Filename, objectName, "single file")
 	if err != nil {
 		return fmt.Errorf("insert form txt file: %w", err)
 	}
@@ -65,7 +66,7 @@ func (s *Service) handleTextFile(ctx context.Context, f multipart.File, handler 
 	return nil
 }
 
-func (s *Service) handleZipFile(ctx context.Context, unzipper *zip.Reader) error {
+func (s *Service) handleZipFile(ctx context.Context, unzipper *zip.Reader, zipName string) error {
 	for _, file := range unzipper.File {
 		if file.FileInfo().IsDir() || strings.Contains(file.Name, "MACOSX") || strings.Contains(file.Name, ".idea") {
 			continue
@@ -76,20 +77,21 @@ func (s *Service) handleZipFile(ctx context.Context, unzipper *zip.Reader) error
 		if err != nil {
 			return fmt.Errorf("open zip file: %w", err)
 		}
-		var buf bytes.Buffer
-		tee := io.TeeReader(reader, &buf)
 
 		objectName, err := s.getCurrentVersion(ctx, fileName)
 		if err != nil {
 			return err
 		}
 
+		var buf bytes.Buffer
+		tee := io.TeeReader(reader, &buf)
+
 		objectName, err = s.storage.UploadFile(ctx, tee, objectName, file.FileHeader.Mode().Type().String(), file.FileInfo().Size())
 		if err != nil {
 			return fmt.Errorf("upload zip file: %w", err)
 		}
 
-		err = s.repo.Insert(ctx, &buf, fileName, objectName)
+		err = s.repo.Insert(ctx, &buf, fileName, objectName, zipName)
 		if err != nil {
 			return fmt.Errorf("insert zip file: %w", err)
 		}

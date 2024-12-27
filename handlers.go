@@ -64,7 +64,7 @@ func makeUploadDataHandler(s *Service) http.HandlerFunc {
 					return
 				}
 
-				err = s.handleZipFile(r.Context(), unzipper)
+				err = s.handleZipFile(r.Context(), unzipper, handler.Filename)
 				if err != nil {
 					s.log.With("error", err).Error("error handling zip file")
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -158,7 +158,7 @@ func makeSearchDataHandler(s *Service) http.HandlerFunc {
 			}
 
 			data := struct {
-				Files []string
+				Files []filesResponse
 			}{
 				Files: files,
 			}

@@ -14,9 +14,16 @@ import (
 
 const maxContentSize = 1048575
 
-type repository struct {
-	db *sql.DB
-}
+type (
+	repository struct {
+		db *sql.DB
+	}
+
+	filesResponse struct {
+		Name    string
+		Project string
+	}
+)
 
 func newRepository(db *sql.DB) *repository {
 	return &repository{db: db}
@@ -36,7 +43,7 @@ func DatabaseConnect(cfg Config) (*sql.DB, error) {
 	return db, nil
 }
 
-func (r *repository) Insert(ctx context.Context, content io.Reader, title, objectName string) error {
+func (r *repository) Insert(ctx context.Context, content io.Reader, title, objectName, project string) error {
 
 	chank := make([]byte, maxContentSize/2)
 
@@ -56,12 +63,9 @@ func (r *repository) Insert(ctx context.Context, content io.Reader, title, objec
 
 		_, err = r.db.ExecContext(ctx, `
 	INSERT INTO files (
-	title, text, file_key, search_vector) 
-	VALUES ($1, $2, $3, strip(to_tsvector('simple', regexp_replace($4, '[^\u0000-\u007F]+', ' ', 'g')
-
-)))
-`, title, text, objectName, text)
-		fmt.Println(text)
+	title, text, file_key, search_vector, project) 
+	VALUES ($1, $2, $3, strip(to_tsvector('simple', regexp_replace($4, '[^\u0000-\u007F]+', ' ', 'g'))), $5)
+`, title, text, objectName, text, project)
 		if err != nil {
 			return fmt.Errorf("insert: %w", err)
 		}
@@ -74,14 +78,14 @@ func (r *repository) Insert(ctx context.Context, content io.Reader, title, objec
 	return nil
 }
 
-func (r *repository) Find(ctx context.Context, toFind string) ([]string, error) {
+func (r *repository) Find(ctx context.Context, toFind string) ([]filesResponse, error) {
 	query := `
-SELECT DISTINCT file_key
+SELECT DISTINCT file_key, project
 FROM files
 WHERE search_vector @@ to_tsquery('simple', $1)
 ;`
 
-	var objectNames []string
+	var files []filesResponse
 	rows, err := r.db.QueryContext(ctx, query, toFind)
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
@@ -89,18 +93,18 @@ WHERE search_vector @@ to_tsquery('simple', $1)
 	defer rows.Close()
 
 	for rows.Next() {
-		var key string
-		if err := rows.Scan(&key); err != nil {
+		var fileResponse filesResponse
+		if err := rows.Scan(&fileResponse.Name, &fileResponse.Project); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
 		}
-		objectNames = append(objectNames, key)
+		files = append(files, fileResponse)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows: %w", err)
 	}
 
-	return objectNames, nil
+	return files, nil
 }
 
 func (r *repository) Delete(ctx context.Context, objectName string) error {
