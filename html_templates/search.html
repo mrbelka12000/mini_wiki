@@ -151,7 +151,7 @@
             <strong>{{.Project}}</strong>
             <a href="/view?object_name={{.}}">{{.Name}}</a>
             <form action="/delete" method="POST" style="display: inline;">
-                <input type="hidden" name="object_name" value="{{.}}">
+                <input type="hidden" name="object_name" value="{{.Name}}">
                 <button type="submit" class="delete-button">Delete</button>
             </form>
         </div>
