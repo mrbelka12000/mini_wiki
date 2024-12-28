@@ -22,7 +22,7 @@ type (
 
 	storage interface {
 		UploadFile(ctx context.Context, file io.Reader, objectName, contentType string, fileSize int64) (string, error)
-		DownloadFile(ctx context.Context, w http.ResponseWriter, objectName string) error
+		DownloadFile(ctx context.Context, w http.ResponseWriter, objectName, contentType string) error
 	}
 )
 
@@ -41,8 +41,8 @@ func RunService(db *sql.DB, storage storage, log *slog.Logger, mux *http.ServeMu
 func initHandlers(s *Service, mux *http.ServeMux) {
 	mux.HandleFunc("/", makeIndexHandler())
 	mux.HandleFunc("/upload", makeUploadDataHandler(s))
-	//mux.HandleFunc("/upload_book", nil)
-	mux.HandleFunc("/search", makeSearchDataHandler(s))
+	mux.HandleFunc("/search_pdf", makeSearchPDFHandler(s))
+	mux.HandleFunc("/search", makeSearchCodeHandler(s))
 	mux.HandleFunc("/delete", makeDeleteDataHandler(s))
 	mux.HandleFunc("/view", makeViewFileHandler(s))
 }
@@ -95,6 +95,25 @@ func (s *Service) handleZipFile(ctx context.Context, unzipper *zip.Reader, zipNa
 		if err != nil {
 			return fmt.Errorf("insert zip file: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (s *Service) handlePDFFile(ctx context.Context, f multipart.File, handler *multipart.FileHeader) error {
+	objectName, err := s.getCurrentVersion(ctx, handler.Filename)
+	if err != nil {
+		return err
+	}
+
+	objectName, err = s.storage.UploadFile(ctx, f, objectName, "application/pdf", handler.Size)
+	if err != nil {
+		return fmt.Errorf("upload file: %w", err)
+	}
+
+	err = s.repo.InsertPDF(ctx, handler.Filename, objectName)
+	if err != nil {
+		return fmt.Errorf("insert pdf file: %w", err)
 	}
 
 	return nil

@@ -59,7 +59,7 @@ func (r *repository) Insert(ctx context.Context, content io.Reader, title, objec
 		if text == "" {
 			break
 		}
-		text = cleanString(text) + title
+		text = cleanStringFromInvalidBytes(text) + title
 
 		_, err = r.db.ExecContext(ctx, `
 	INSERT INTO files (
@@ -139,7 +139,36 @@ func (r *repository) GetFileNamesVersion(ctx context.Context, objectName string)
 	return version, err
 }
 
-func cleanString(input string) string {
+func (r *repository) InsertPDF(ctx context.Context, title, objectName string) error {
+	_, err := r.db.ExecContext(ctx, `
+	INSERT INTO pdf_files (
+	title, file_key) 
+	VALUES ($1, $2)
+`, title, objectName)
+	if err != nil {
+		return fmt.Errorf("inser pdf: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) FindPDF(ctx context.Context, title string) (string, error) {
+	query := `
+SELECT file_key
+FROM pdf_files
+WHERE title like '%' || $1 || '%'
+;`
+
+	var objectName string
+	err := r.db.QueryRowContext(ctx, query, title).Scan(&objectName)
+	if err != nil {
+		return "", fmt.Errorf("find pdf: %w", err)
+	}
+
+	return objectName, nil
+}
+
+func cleanStringFromInvalidBytes(input string) string {
 	var cleanBuilder strings.Builder
 	for _, r := range input {
 		if r == utf8.RuneError {

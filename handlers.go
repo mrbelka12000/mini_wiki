@@ -2,6 +2,8 @@ package mini_wiki
 
 import (
 	"archive/zip"
+	"database/sql"
+	"errors"
 	"html/template"
 	"io"
 	"net/http"
@@ -80,6 +82,13 @@ func makeUploadDataHandler(s *Service) http.HandlerFunc {
 					return
 				}
 
+			case strings.Contains(fileType, "application/pdf"):
+				err := s.handlePDFFile(r.Context(), f, handler)
+				if err != nil {
+					s.log.With("error", err).Error("error handling pdf")
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 			case fileType == "text/html":
 			}
 
@@ -123,7 +132,7 @@ func makeDeleteDataHandler(s *Service) http.HandlerFunc {
 	}
 }
 
-func makeSearchDataHandler(s *Service) http.HandlerFunc {
+func makeSearchCodeHandler(s *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles("html_templates/search.html")
 		if err != nil {
@@ -173,6 +182,62 @@ func makeSearchDataHandler(s *Service) http.HandlerFunc {
 	}
 }
 
+func makeSearchPDFHandler(s *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		t, err := template.ParseFiles("html_templates/search_pdf.html")
+		if err != nil {
+			s.log.With("error", err).Error("error parsing template")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+
+			err = t.Execute(w, nil)
+			if err != nil {
+				s.log.With("error", err).Error("error executing template")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case http.MethodPost:
+
+			err := r.ParseForm()
+			if err != nil {
+				s.log.With("error", err).Error("error parsing form")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			var errorMessage string
+			toFind := r.FormValue("to_find")
+			pdfName, err := s.repo.FindPDF(r.Context(), toFind)
+			if err != nil {
+				if !errors.Is(err, sql.ErrNoRows) {
+					s.log.With("error", err).Error("error finding pdfName")
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				errorMessage = "PDF not found"
+			}
+
+			data := struct {
+				PDF          string
+				ErrorMessage string
+			}{
+				PDF:          pdfName,
+				ErrorMessage: errorMessage,
+			}
+
+			err = t.Execute(w, data)
+			if err != nil {
+				s.log.With("error", err).Error("error executing template")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+}
+
 func makeViewFileHandler(s *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
@@ -183,17 +248,30 @@ func makeViewFileHandler(s *Service) http.HandlerFunc {
 		}
 
 		objectName := r.Form.Get("object_name")
-		if objectName == "" {
-			s.log.Error("empty object_name")
-			http.Error(w, "empty object_name", http.StatusBadRequest)
+		if objectName != "" {
+			err = s.storage.DownloadFile(r.Context(), w, objectName, "")
+			if err != nil {
+				s.log.With("error", err).Error("error downloading file")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			return
 		}
 
-		err = s.storage.DownloadFile(r.Context(), w, objectName)
-		if err != nil {
-			s.log.With("error", err).Error("error downloading file")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		pdfName := r.Form.Get("pdf_name")
+		if pdfName != "" {
+			err = s.storage.DownloadFile(r.Context(), w, pdfName, "application/pdf")
+			if err != nil {
+				s.log.With("error", err).Error("error downloading pdf file")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			return
 		}
+
+		http.Error(w, "no file found", http.StatusBadRequest)
+		s.log.Error("no file found")
 	}
 }

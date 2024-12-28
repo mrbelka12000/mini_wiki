@@ -46,7 +46,7 @@ func (s *Storage) UploadFile(ctx context.Context, file io.Reader, objectName, co
 	return info.Key, nil
 }
 
-func (s *Storage) DownloadFile(ctx context.Context, w http.ResponseWriter, objectName string) error {
+func (s *Storage) DownloadFile(ctx context.Context, w http.ResponseWriter, objectName, contentTypeHeader string) error {
 	object, err := s.client.GetObject(ctx, s.bucket, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("download file: %v", err)
@@ -57,10 +57,13 @@ func (s *Storage) DownloadFile(ctx context.Context, w http.ResponseWriter, objec
 		return fmt.Errorf("get stats: %v", err)
 	}
 
-	// Set HTTP headers to force the browser to download the file
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s", objectName))
-	w.Header().Set("Content-Type", objectInfo.ContentType)
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", objectInfo.Size))
+	if contentTypeHeader == "" {
+		contentTypeHeader = objectInfo.ContentType
+	}
+
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, objectName))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", objectInfo.Size)) // Ensure correct file size
+	w.Header().Set("Content-Type", contentTypeHeader)
 
 	// Stream the file from MinIO to the HTTP response using io.Copy
 	if _, err := io.Copy(w, object); err != nil {
@@ -68,4 +71,8 @@ func (s *Storage) DownloadFile(ctx context.Context, w http.ResponseWriter, objec
 	}
 
 	return nil
+}
+
+func (s *Storage) DeleteFile(ctx context.Context, objectName string) error {
+	return s.client.RemoveObject(ctx, s.bucket, objectName, minio.RemoveObjectOptions{})
 }

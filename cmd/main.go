@@ -29,7 +29,6 @@ func main() {
 		log.With("error", err).Error("failed to connect to storage")
 		return
 	}
-
 	mux := http.NewServeMux()
 
 	log.Info("service started on port " + cfg.HTTPPort)
