@@ -76,33 +76,26 @@
       background-color: #5548c8;
     }
 
-    .pdf-list {
+    .link-list {
       margin-top: 20px;
       text-align: left;
     }
 
-    .pdf-item {
+    .link-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
     }
 
-    .pdf-item a {
+    .link-item a {
       font-size: 16px;
       color: #6c63ff;
       text-decoration: none;
     }
 
-    .pdf-item a:hover {
+    .link-item a:hover {
       text-decoration: underline;
-    }
-
-    .error-message {
-      margin-top: 20px;
-      color: #ff4d4f;
-      font-size: 16px;
-      text-align: center;
     }
 
     .delete-button {
@@ -136,7 +129,15 @@
     .footer a:hover {
       text-decoration: underline;
     }
+    .error-message {
+      margin-top: 20px;
+      color: #ff4d4f;
+      font-size: 16px;
+      text-align: center;
+    }
+
   </style>
+
 </head>
 <body>
 
@@ -145,19 +146,26 @@
   <a href="/search">Search Code</a>
 
   <form action="/search_pdf" method="POST">
-    <label for="pdfField">Enter pdf title:</label>
-    <input type="text" id="pdfField" name="to_find" placeholder="Type pdf title here..." required>
+    <label for="inputField">Enter pdf title:</label>
+    <input type="text" id="inputField" name="to_find" placeholder="Type pdf title here..." required>
 
     <button type="submit">Search</button>
   </form>
 
-  {{if .PDF}}
-  <div class="pdf-list">
-    <h2>Search Results</h2>
-    <div class="pdf-item">
-      <a href="/view?pdf_name={{.PDF}}">{{ .PDF }}</a>
+  {{if .Files}}
+  <div class="link-list">
+    <h2>Search Results for: {{ .ToFind}}</h2>
+    {{range .Files}}
+    <div class="link-item">
+      <a href="/view?pdf_name={{.}}">{{.}}</a>
+      <form action="/delete" method="POST" style="display: inline;">
+        <input type="hidden" name="object_name_pdf" value="{{.}}">
+        <button type="submit" class="delete-button">Delete</button>
+      </form>
     </div>
+    {{end}}
   </div>
+
   {{end}}
   {{if .ErrorMessage}}
   <div class="error-message">

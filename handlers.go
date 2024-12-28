@@ -108,12 +108,26 @@ func makeDeleteDataHandler(s *Service) http.HandlerFunc {
 		}
 
 		objectName := r.FormValue("object_name")
+		if objectName != "" {
+			err = s.repo.Delete(r.Context(), objectName)
+			if err != nil {
+				s.log.With("error", err).Error("error deleting object")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		objectNamePDF := r.FormValue("object_name_pdf")
+		if objectNamePDF != "" {
+			err = s.repo.DeletePDF(r.Context(), objectNamePDF)
+			if err != nil {
+				s.log.With("error", err).Error("error deleting object")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 
-		err = s.repo.Delete(r.Context(), objectName)
-		if err != nil {
-			s.log.With("error", err).Error("error deleting object")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if objectName == "" {
+			objectName = objectNamePDF
 		}
 
 		t, err := template.ParseFiles("html_templates/delete.html")
@@ -167,9 +181,11 @@ func makeSearchCodeHandler(s *Service) http.HandlerFunc {
 			}
 
 			data := struct {
-				Files []filesResponse
+				Files  []filesResponse
+				ToFind string
 			}{
-				Files: files,
+				Files:  files,
+				ToFind: toFind,
 			}
 
 			err = t.Execute(w, data)
@@ -221,10 +237,12 @@ func makeSearchPDFHandler(s *Service) http.HandlerFunc {
 			}
 
 			data := struct {
-				PDF          string
+				Files        []string
+				ToFind       string
 				ErrorMessage string
 			}{
-				PDF:          pdfName,
+				Files:        pdfName,
+				ToFind:       toFind,
 				ErrorMessage: errorMessage,
 			}
 

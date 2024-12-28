@@ -152,7 +152,7 @@ func (r *repository) InsertPDF(ctx context.Context, title, objectName string) er
 	return nil
 }
 
-func (r *repository) FindPDF(ctx context.Context, title string) (string, error) {
+func (r *repository) FindPDF(ctx context.Context, title string) ([]string, error) {
 	title = strings.ToLower(title)
 
 	query := `
@@ -161,13 +161,30 @@ FROM pdf_files
 WHERE search_data like '%' || $1 || '%'
 ;`
 
-	var objectName string
-	err := r.db.QueryRowContext(ctx, query, title).Scan(&objectName)
+	var objects []string
+	rows, err := r.db.QueryContext(ctx, query, title)
 	if err != nil {
-		return "", fmt.Errorf("find pdf: %w", err)
+		return nil, fmt.Errorf("query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var object string
+		if err := rows.Scan(&object); err != nil {
+			return nil, fmt.Errorf("scan: %w", err)
+		}
+		objects = append(objects, object)
+	}
+	return objects, nil
+}
+
+func (r *repository) DeletePDF(ctx context.Context, objectName string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM pdf_files WHERE file_key = $1`, objectName)
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
 	}
 
-	return objectName, nil
+	return nil
 }
 
 func cleanStringFromInvalidBytes(input string) string {
