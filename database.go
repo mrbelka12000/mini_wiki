@@ -158,7 +158,7 @@ func (r *repository) FindPDF(ctx context.Context, title string) (string, error) 
 	query := `
 SELECT file_key
 FROM pdf_files
-WHERE title like '%' || $1 || '%'
+WHERE search_data like '%' || $1 || '%'
 ;`
 
 	var objectName string
