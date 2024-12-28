@@ -142,9 +142,9 @@ func (r *repository) GetFileNamesVersion(ctx context.Context, objectName string)
 func (r *repository) InsertPDF(ctx context.Context, title, objectName string) error {
 	_, err := r.db.ExecContext(ctx, `
 	INSERT INTO pdf_files (
-	title, file_key) 
-	VALUES ($1, $2)
-`, title, objectName)
+	title, file_key, search_data) 
+	VALUES ($1, $2, $3)
+`, title, objectName, strings.ToLower(title))
 	if err != nil {
 		return fmt.Errorf("inser pdf: %w", err)
 	}
@@ -153,6 +153,8 @@ func (r *repository) InsertPDF(ctx context.Context, title, objectName string) er
 }
 
 func (r *repository) FindPDF(ctx context.Context, title string) (string, error) {
+	title = strings.ToLower(title)
+
 	query := `
 SELECT file_key
 FROM pdf_files
