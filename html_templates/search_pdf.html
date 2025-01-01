@@ -19,12 +19,13 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      padding: 20px;
     }
 
     .container {
       background-color: #ffffff;
       border-radius: 8px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 500px;
       padding: 20px 30px;
@@ -85,6 +86,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      width: 100%; /* Ensure uniform width */
+      max-width: 500px; /* Matches the container width */
       margin-bottom: 10px;
     }
 
@@ -92,6 +95,10 @@
       font-size: 16px;
       color: #6c63ff;
       text-decoration: none;
+      word-wrap: break-word; /* Break long words */
+      word-break: break-word; /* Ensure breaking works */
+      flex: 1; /* Allows link to take up remaining space */
+      max-width: 400px; /* Limit link width */
     }
 
     .link-item a:hover {
@@ -107,7 +114,6 @@
       font-weight: bold;
       border-radius: 4px;
       cursor: pointer;
-      margin-left: 10px;
       transition: background-color 0.3s ease;
     }
 
@@ -119,6 +125,7 @@
       margin-top: 20px;
       font-size: 14px;
       color: #888;
+      text-align: center;
     }
 
     .footer a {
@@ -129,6 +136,7 @@
     .footer a:hover {
       text-decoration: underline;
     }
+
     .error-message {
       margin-top: 20px;
       color: #ff4d4f;
@@ -136,8 +144,21 @@
       text-align: center;
     }
 
-  </style>
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px 20px;
+      }
 
+      .link-item {
+        flex-direction: column; /* Stack items vertically on smaller screens */
+        align-items: flex-start;
+      }
+
+      .delete-button {
+        width: 100%; /* Full width for small screens */
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -148,13 +169,12 @@
   <form action="/search_pdf" method="POST">
     <label for="inputField">Enter pdf title:</label>
     <input type="text" id="inputField" name="to_find" placeholder="Type pdf title here..." required>
-
     <button type="submit">Search</button>
   </form>
 
   {{if .Files}}
   <div class="link-list">
-    <h2>Search Results for: {{ .ToFind}}</h2>
+    <h2>Search Results for: {{ .ToFind }}</h2>
     {{range .Files}}
     <div class="link-item">
       <a href="/view?pdf_name={{.}}">{{.}}</a>
@@ -165,8 +185,8 @@
     </div>
     {{end}}
   </div>
-
   {{end}}
+
   {{if .ErrorMessage}}
   <div class="error-message">
     {{.ErrorMessage}}
